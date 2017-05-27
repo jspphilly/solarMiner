@@ -1,0 +1,224 @@
+<doctype HTML>
+<html>
+
+<head>
+    <title>Local Storage Test</title>
+    <style>
+        #profileSection{
+            display: none;
+        }
+
+        #loginSection{
+            display: block;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div id="loginSection"> 
+        <label for="username">Enter Username</label>
+        <input type="text" name="username">
+
+        <br/>
+        <label for="password">Enter Password</label>
+        <input type="password" name="password">
+        <br/>
+        <button id="login">Login</button>
+        <br/>
+        <button id="register">Register</button>
+    </div>  
+
+    <div id="profileSection">
+        <table>
+            <tr>
+                <td>
+                    NAME
+                </td> 
+                <td>
+                    <span id="usernameField"></span>
+                </td>
+            </tr>  
+            <tr>
+                <td>
+                    High Score
+                </td> 
+                <td>
+                    <span id="highScoreField"></span>
+                </td>
+            </tr> 
+
+            <tr class="divider">
+            </tr>  
+
+            <tr>
+                <td>
+                    Sand
+                </td>
+                <td>
+                    <span id="sandTotal"></span>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Ocean
+                </td>
+                <td>
+                    <span id="oceanTotal"></span>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Verdant
+                </td>
+                <td>
+                    <span id="verdantTotal"></span>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Rock
+                </td>
+                <td>
+                    <span id="rockTotal"></span>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Moon
+                </td>
+                <td>
+                    <span id="moonTotal"></span>
+                </td>
+            </tr>
+        </table>
+
+
+
+        <nav>
+            <button id="save">Save</button>
+            <button id="logout">Logout</button>
+        </nav>
+
+    </div>  
+
+
+</body>
+
+<script>
+    //states
+    var stars = [
+        "Sand", "Ocean", "Verdant", "Rock", "Moon"
+    ]
+
+    var states = {
+        login: 0,
+        profile: 1
+    }
+    var state = 0;
+
+    //sections 
+    var loginSection = document.getElementById('loginSection')
+    var profileSection = document.getElementById('profileSection')
+
+    //btns
+    var loginBtn = document.getElementById('login');
+    var registerBtn = document.getElementById('register');
+    var logoutBtn = document.getElementById('logout')
+    var saveBtn = document.getElementById('save');
+
+
+    //userinfo
+    var userInfo = {}
+
+    //listeners
+    loginBtn.addEventListener('click', function(){
+        login()
+    })
+    logoutBtn.addEventListener('click', function(){
+        logout()
+    })
+    registerBtn.addEventListener('click', function(){
+        register()
+    })
+
+    saveBtn.addEventListener('click', function(){
+        save()
+    })
+
+
+    function register(){
+        getLoginValues();
+        
+        //TODO: make a more legitimate condition
+        if(userInfo.usernameVal.length && userInfo.passwordVal.length)
+        {
+            testStarInfo();
+            console.log(userInfo);
+            localStorage[userInfo.usernameVal] = JSON.stringify(userInfo);
+            changeState(1);
+        }
+        else{
+            alert('You must supply a valid username and password')
+        }
+    }
+
+    function login(){
+        getLoginValues();
+        changeState(1)
+    }   
+
+    function logout(){
+        for(var key in userInfo){
+            userInfo[key] = '';
+        }
+        changeState(0);
+    }
+
+    function save(){
+        
+    }
+
+
+    function getLoginValues(){
+        //inputs
+        userInfo.usernameVal = document.getElementsByName("username")[0].value;
+        userInfo.passwordVal = document.getElementsByName("password")[0].value;
+
+        if(localStorage[userInfo.usernameVal]){
+            alert('Hey! We know this guy!')
+            userInfo = JSON.parse(localStorage[userInfo.usernameVal])
+            console.log(userInfo);
+        }
+    }
+
+
+    function changeState(newState){
+        state = newState;
+
+        switch(state){
+            case 0:
+                loginSection.style.display = "block"; 
+                profileSection.style.display = "none";
+                break;
+
+            case 1:
+                profileSection.style.display = "block";
+                loginSection.style.display = "none";
+                break;
+
+        }
+    }
+
+    
+    function testStarInfo(){
+        for(var i = 0; i < stars.length; i++){
+            userInfo[stars[i]] = Math.random() * 100
+        }
+    }
+
+
+</script>
+
+
+</html>
