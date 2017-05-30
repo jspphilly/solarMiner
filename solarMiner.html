@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>SolarMiner</title>
+    <script type='text/javascript' src='core.js'></script>
+    <style>
+        html{
+            background: URL('images/solarSystem.jpg');
+            font-family: Courier New, Courier, monospace;
+        }
+        #loginPage {
+            margin: 0;
+            padding: 0;
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        #loginSection{
+            text-align: center;
+            padding: 60px 80px;
+            width: 300px;
+            height: 400px;
+            margin: 0 auto;
+            margin-top: 60px;
+            font-size: 14pt;
+            background-color: rgba(0,0,0,.95);
+            border-radius: 10px;
+            color: white;
+            box-shadow: 2px 2px 20px #000;
+        }
+        #loginSection label{
+            /*display:  block;*/
+        }
+        #loginSection input{
+            border-color: #333;
+            border-style: solid;
+            border-width: 2px;
+            padding: 4px 10px;
+            border-radius: 5px;
+            display: block;
+            margin: 0 auto;
+            box-shadow: 1px 1px 2px #666;
+        }
+        #loginSection button
+        {
+            padding: 5px 5px;
+            border-style: solid;
+            border-color: #333;
+            font-weight: bold;
+            border-radius: 5px;
+            min-width: 93px;
+            margin-top: 20px;
+            box-shadow: 1px 1px 2px #666;
+            cursor: pointer;
+        }
+
+        #registerBtn{
+            background: #006db7;
+            color: white;
+        }
+        #loginBtn{
+            background: white;
+        }
+
+        #gamePage, #profilePage {
+            display: none;
+        }
+
+        #hudSection{
+            padding: 10px;
+            width: 350px;
+            box-sizing: border-box;
+            height: 40px;
+            background-color: #333;
+            display: flex;
+            flex-direction: row nowrap;
+            justify-content: space-between;
+            flex-grow: 2;
+        }
+        #timer, #gauge, #score{
+             
+         }
+        #timer, #score{
+            color: white;
+            font-size: 18pt;
+            font-weight: bold;
+        }
+        #images{
+            position: absolute;
+            left: -5000px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loginPage">
+
+        <div id="loginSection">
+            <label for="username">Username</label>
+            <input type="text" name="username">
+
+            <br/>
+            <label for="password">Password</label>
+            <input type="password" name="password">
+            <br/>
+            <button id="loginBtn">Login</button>
+            <button id="registerBtn">Register</button>
+        </div>
+
+    </div>
+
+    <div id="profilePage">
+        <!--PROFILE INFO -->
+        <div id="profileName"></div>
+        <div id="highScore"></div>
+        <!-- MENU OPTIONS -->
+        <div id="menuOptions">
+            <button id="newGame">New Game</button>
+            <button id="resources">Resources</button>
+            <button id="leaderBoards">Leaderboards</button>
+        </div>
+    </div>
+
+    <div id="gamePage">
+        <div id="hudSection">
+            <div id="timer"></div>
+            <div id="gauge"></div>
+            <div id="score"></div>
+        </div>  
+        <div id="images">
+            <img id="moon" src="images/small/moon.png" width="40" height "40">
+            <img id="gas" src="images/small/gas.png" width="40" height="40">
+            <img id="water" src="images/small/water.png" width="40" height "40">
+            <img id="sand" src="images/small/sand.png" width="40" height="40">
+            <img id="sun" src="images/small/sun.png" width="40" height="40">
+        </div>
+        
+        <canvas id="viewport" width="350" height="400"></canvas>
+    </div>
+</body>
+
+<script>
+    //Stars
+    var stars = [
+        "Sand", "Ocean", "Verdant", "Rock", "Moon"
+    ]
+
+    var pageStates = {
+        login: 0,
+        game: 1
+    }
+    var currentPageState = 0;
+
+    //userinfo
+    var userInfo = {}
+
+    //pages
+    var pages = {
+        login: {
+            page: document.getElementById('loginPage'),
+            btns: {
+                login: document.getElementById('loginBtn'),
+                register: document.getElementById('registerBtn')
+            },
+        },
+        profile: {
+            page: document.getElementById('profilePage'),
+            btns: {
+                newGame: document.getElementById('newGame'),
+                resources: document.getElementById('resources'),
+                leaderBoards: document.getElementById('leaderBoards')
+            },
+        }, 
+        game: {
+            page: document.getElementById('gamePage'),
+            hud: {
+                timer: document.getElementById('timer'),
+                gauge: document.getElementById('gauge'),
+                score: document.getElementById('score')
+            }
+        } 
+    }
+
+    // A D D   L I S T E N E R S
+    //LOGIN PAGE LISTENERS
+    pages.login.btns.login
+    .addEventListener('click', function() {
+        login()
+    }),
+     pages.login.btns.register
+     .addEventListener('click', function() {
+        register()
+    })
+
+    //PROFILE PAGE LISTENERS
+    pages.profile.btns.newGame
+    .addEventListener('click', function() {
+        newStandardGame();
+    }),
+    pages.profile.btns.resources
+    .addEventListener('click', function() {
+        //register()
+    }),
+    pages.profile.btns.leaderBoards
+    .addEventListener('click', function() {
+        //register()
+    })
+
+    
+    
+
+    //sections 
+    var loginSection = document.getElementById('loginSection');
+    var gameSection = document.getElementById('profileSection');
+
+    
+    // var logoutBtn = document.getElementById('logout')
+    // var saveBtn = document.getElementById('save');
+
+    
+
+
+
+    function register() {
+        getLoginValues();
+
+        //TODO: make a more legitimate condition
+        if (userInfo.user.length && userInfo.passwordVal.length) {
+            //Check to make sure that person doesn't exist yet
+            if (!localStorage[userInfo.user]) {
+                testStarInfo();
+                console.log(userInfo);
+                localStorage[userInfo.user] = JSON.stringify(userInfo);
+                changePageState(1);
+            }
+            else{
+                alert('We\'ve already got you in the system. Welcome back')
+                changePageState(1);
+            }
+        } else {
+            alert('You must supply a valid username and password')
+        }
+    }
+
+    //LOGIN
+    function login() {
+        if (getLoginValues()) {
+            changePageState(1);
+        }
+    }
+
+
+    //START STANDARD GAME
+    function newStandardGame(){
+        changePageState(2);
+    }
+
+    //LOGOUT
+    function logout() {
+        for (var key in userInfo) {
+            userInfo[key] = '';
+        }
+        changePageState(0);
+    }
+
+    function save() {
+        localStorage[userInfo.user] = JSON.stringify(userInfo);
+    }
+
+
+    function getLoginValues() {
+        //inputs
+        userInfo.user = document.getElementsByName("username")[0].value;
+        userInfo.passwordVal = document.getElementsByName("password")[0].value;
+
+        if (localStorage[userInfo.user]) {
+            // alert('Hey! We know this guy!')
+            userInfo = JSON.parse(localStorage[userInfo.user])
+            console.log(userInfo);
+            return true;
+        } else {
+            alert('No Profile yet. Click Register to create profile')
+            return false;
+        }
+
+
+    }
+
+
+    function changePageState(newState) {
+
+        switch (newState) {
+            //LOGIN PAGE
+            case 0:
+                hideAllPages()
+                loginPage.style.display = "block";
+                break;
+
+            //GAME PAGE
+            case 1:
+                hideAllPages()
+                profilePage.style.display = "block";
+
+                break;
+            //GAME PAGE 
+            case 2: 
+                hideAllPages()
+                gamePage.style.display = "block";
+                //SET OPTIONS
+                var options = {
+                    timer: 60
+                }
+
+                //Load game
+                initCanvas(options);
+                break;
+        }
+
+        function hideAllPages(){
+            for(var key in pages){
+                pages[key].page.style.display = 'none';
+            }
+        }
+    }
+
+
+    function testStarInfo() {
+        for (var i = 0; i < stars.length; i++) {
+            userInfo[stars[i]] = Math.random() * 100
+        }
+    }
+
+
+    //AUTO FUNCTIONS
+    /**
+     * used for switching to a specific page
+     * in development
+     **/
+    (function checkDevState(){
+        var devState = +window.location.href.split('?')[1].split('=')[1]
+        changePageState(devState);
+    })();
+</script>
+
+</html>

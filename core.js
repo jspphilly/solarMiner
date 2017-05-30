@@ -19,7 +19,11 @@
 // ------------------------------------------------------------------------
 
 // The function gets called when the window is fully loaded
-window.onload = function() {
+function initCanvas(options) {
+
+    //TIMER 
+    var timer = options.timer;
+
     // Get the canvas and context
     var canvas = document.getElementById("viewport");
     var context = canvas.getContext("2d");
@@ -35,9 +39,9 @@ window.onload = function() {
 
     // Level object
     var level = {
-        x: 250, // X position
-        y: 113, // Y position
-        columns: 8, // Number of tile columns
+        x: 0, // X position
+        y: 0, // Y position
+        columns: 7, // Number of tile columns
         rows: 8, // Number of tile rows
         tilewidth: 50, // Visual width of a tile
         tileheight: 50, // Visual height of a tile
@@ -51,14 +55,12 @@ window.onload = function() {
             name: 'Star',
             value: 1,
             img: 'sun'
-
         },
         {
             type: '',
             name: 'Sand World',
             value: 1,
             img: 'sand'
-
         },
         {
             type: '',
@@ -92,8 +94,7 @@ window.onload = function() {
 
     //Page  States
     var pageStates = {
-        login: 0,
-
+        login: 0
     }
 
 
@@ -124,13 +125,18 @@ window.onload = function() {
     var gameover = false;
 
     // Gui buttons
-    var buttons = [{ x: 30, y: 240, width: 150, height: 50, text: "New Game" },
-        { x: 30, y: 300, width: 150, height: 50, text: "Show Moves" },
-        { x: 30, y: 360, width: 150, height: 50, text: "Enable AI Bot" }
-    ];
+    // var buttons = [{ x: 30, y: 240, width: 150, height: 50, text: "New Game" },
+    //     { x: 30, y: 300, width: 150, height: 50, text: "Show Moves" },
+    //     { x: 30, y: 360, width: 150, height: 50, text: "Enable AI Bot" }
+    // ];
 
     // Initialize the game
     function init() {
+
+        //SET TIMER AND SCORE
+        updateScoreScreen();
+
+
         // Add mouse events
         canvas.addEventListener("mousemove", onMouseMove);
         canvas.addEventListener("mousedown", onMouseDown);
@@ -162,6 +168,16 @@ window.onload = function() {
         update(tframe);
         render();
     }
+    
+    //Reduces the count and updates the clock
+    function coundownTimer(){
+        timer--;
+        pages.game.hud.timer.innerHTML = timer;
+    }
+
+    var initCountdown = window.setInterval(function(){
+       coundownTimer()
+    }, 1000)
 
     // Update the game state
     function update(tframe) {
@@ -175,33 +191,33 @@ window.onload = function() {
             // Game is ready for player input
 
             // Check for game over
-            if (moves.length <= 0) {
-                gameover = true;
-            }
+            checkGameOver();
 
             // Let the AI bot make a move, if enabled
-            if (aibot) {
-                animationtime += dt;
-                if (animationtime > animationtimetotal) {
-                    // Check if there are moves available
-                    findMoves();
+            // if (aibot) {
+            //     animationtime += dt;
+            //     if (animationtime > animationtimetotal) {
+            //         // Check if there are moves available
+            //         findMoves();
 
-                    if (moves.length > 0) {
-                        // Get a random valid move
-                        var move = moves[Math.floor(Math.random() * moves.length)];
+            //         if (moves.length > 0) {
+            //             // Get a random valid move
+            //             var move = moves[Math.floor(Math.random() * moves.length)];
 
-                        // Simulate a player using the mouse to swap two tiles
-                        mouseSwap(move.column1, move.row1, move.column2, move.row2);
-                    } else {
-                        // No moves left, Game Over. We could start a new game.
-                        // newGame();
-                    }
-                    animationtime = 0;
-                }
-            }
+            //             // Simulate a player using the mouse to swap two tiles
+            //             mouseSwap(move.column1, move.row1, move.column2, move.row2);
+            //         } else {
+            //             // No moves left, Game Over. We could start a new game.
+            //             // newGame();
+            //         }
+            //         animationtime = 0;
+            //     }
+            // }
         } else if (gamestate == gamestates.resolve) {
             // Game is busy resolving and animating clusters
             animationtime += dt;
+
+            checkGameOver();
 
             if (animationstate == 0) {
                 // Clusters need to be found and removed
@@ -213,8 +229,10 @@ window.onload = function() {
                         // Add points to the score
                         for (var i = 0; i < clusters.length; i++) {
                             // Add extra points for longer clusters
-                            score += 100 * (clusters[i].length - 2);;
+                            updateScore(i);
                         }
+                        //Update the score screen
+                        updateScoreScreen()
 
                         // Clusters found, remove them
                         removeClusters();
@@ -228,6 +246,8 @@ window.onload = function() {
                     animationtime = 0;
                 }
             } else if (animationstate == 1) {
+
+                checkGameOver();
                 // Tiles need to be shifted
                 if (animationtime > animationtimetotal) {
                     // Shift tiles
@@ -245,6 +265,8 @@ window.onload = function() {
                     }
                 }
             } else if (animationstate == 2) {
+                checkGameOver();
+
                 // Swapping tiles animation
                 if (animationtime > animationtimetotal) {
                     // Swap the tiles
@@ -280,9 +302,19 @@ window.onload = function() {
             }
 
             // Update moves and clusters
-            findMoves();
+            // findMoves();
             findClusters();
         }
+    }
+
+    function checkGameOver(){
+        if (moves.length <= 0 || timer <= 0) {
+            gameover = true;
+
+            //Clear intervals
+            window.clearInterval(initCountdown)
+        }
+        return false;
     }
 
     function updateFps(dt) {
@@ -309,16 +341,17 @@ window.onload = function() {
     // Render the game
     function render() {
         // Draw the frame
-        drawFrame();
+        // drawFrame();
 
-        // Draw score
-        context.fillStyle = "#000000";
-        context.font = "24px Verdana";
-        drawCenterText("Score:", 30, level.y + 40, 150);
-        drawCenterText(score, 30, level.y + 70, 150);
+        // // Draw score
+        // context.fillStyle = "#000000";
+        // context.font = "24px Verdana";
+        // drawCenterText(userInfo.user, 30, level.y + 10, 150);
+        // drawCenterText("Score:", 30, level.y + 40, 150);
+        // drawCenterText(score, 30, level.y + 70, 150);
 
         // Draw buttons
-        drawButtons();
+        // drawButtons();
 
         // Draw level background
         var levelwidth = level.columns * level.tilewidth;
@@ -348,43 +381,49 @@ window.onload = function() {
         }
     }
 
-    // Draw a frame with a border
-    function drawFrame() {
-        // Draw background and a border
-        context.fillStyle = "#d0d0d0";
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.fillStyle = "#e8eaec";
-        context.fillRect(1, 1, canvas.width - 2, canvas.height - 2);
-
-        // Draw header
-        context.fillStyle = "#303030";
-        context.fillRect(0, 0, canvas.width, 65);
-
-        // Draw title
-        context.fillStyle = "#ffffff";
-        context.font = "24px Verdana";
-        context.fillText("StarMiner", 10, 30);
-
-        // Display fps
-        context.fillStyle = "#ffffff";
-        context.font = "12px Verdana";
-        context.fillText("Fps: " + fps, 13, 50);
+    function updateScore(i){
+         score += 100 * (clusters[i].length - 2);
     }
+    function updateScoreScreen(){
+        pages.game.hud.score.innerHTML = score;
+    }
+    // Draw a frame with a border
+    // function drawFrame() {
+    //     // Draw background and a border
+    //     context.fillStyle = "#d0d0d0";
+    //     context.fillRect(0, 0, canvas.width, canvas.height);
+    //     context.fillStyle = "#e8eaec";
+    //     context.fillRect(1, 1, canvas.width - 2, canvas.height - 2);
+
+    //     // Draw header
+    //     context.fillStyle = "#303030";
+    //     context.fillRect(0, 0, canvas.width, 65);
+
+    //     // Draw title
+    //     context.fillStyle = "#ffffff";
+    //     context.font = "24px Verdana";
+    //     context.fillText("StarMiner", 10, 30);
+
+    //     // Display fps
+    //     context.fillStyle = "#ffffff";
+    //     context.font = "12px Verdana";
+    //     context.fillText("Fps: " + fps, 13, 50);
+    // }
 
     // Draw buttons
-    function drawButtons() {
-        for (var i = 0; i < buttons.length; i++) {
-            // Draw button shape
-            context.fillStyle = "#000000";
-            context.fillRect(buttons[i].x, buttons[i].y, buttons[i].width, buttons[i].height);
+    // function drawButtons() {
+    //     for (var i = 0; i < buttons.length; i++) {
+    //         // Draw button shape
+    //         context.fillStyle = "#000000";
+    //         context.fillRect(buttons[i].x, buttons[i].y, buttons[i].width, buttons[i].height);
 
-            // Draw button text
-            context.fillStyle = "#ffffff";
-            context.font = "18px Verdana";
-            var textdim = context.measureText(buttons[i].text);
-            context.fillText(buttons[i].text, buttons[i].x + (buttons[i].width - textdim.width) / 2, buttons[i].y + 30);
-        }
-    }
+    //         // Draw button text
+    //         context.fillStyle = "#ffffff";
+    //         context.font = "18px Verdana";
+    //         var textdim = context.measureText(buttons[i].text);
+    //         context.fillText(buttons[i].text, buttons[i].x + (buttons[i].width - textdim.width) / 2, buttons[i].y + 30);
+    //     }
+    // }
 
     // Render tiles
     function renderTiles() {
@@ -879,26 +918,26 @@ window.onload = function() {
             drag = true;
         }
 
-        // Check if a button was clicked
-        for (var i = 0; i < buttons.length; i++) {
-            if (pos.x >= buttons[i].x && pos.x < buttons[i].x + buttons[i].width &&
-                pos.y >= buttons[i].y && pos.y < buttons[i].y + buttons[i].height) {
+        // // Check if a button was clicked
+        // for (var i = 0; i < buttons.length; i++) {
+        //     if (pos.x >= buttons[i].x && pos.x < buttons[i].x + buttons[i].width &&
+        //         pos.y >= buttons[i].y && pos.y < buttons[i].y + buttons[i].height) {
 
-                // Button i was clicked
-                if (i == 0) {
-                    // New Game
-                    newGame();
-                } else if (i == 1) {
-                    // Show Moves
-                    showmoves = !showmoves;
-                    buttons[i].text = (showmoves ? "Hide" : "Show") + " Moves";
-                } else if (i == 2) {
-                    // AI Bot
-                    aibot = !aibot;
-                    buttons[i].text = (aibot ? "Disable" : "Enable") + " AI Bot";
-                }
-            }
-        }
+        //         // Button i was clicked
+        //         if (i == 0) {
+        //             // New Game
+        //             newGame();
+        //         } else if (i == 1) {
+        //             // Show Moves
+        //             showmoves = !showmoves;
+        //             buttons[i].text = (showmoves ? "Hide" : "Show") + " Moves";
+        //         } else if (i == 2) {
+        //             // AI Bot
+        //             aibot = !aibot;
+        //             buttons[i].text = (aibot ? "Disable" : "Enable") + " AI Bot";
+        //         }
+        //     }
+        // }
     }
 
     function onMouseUp(e) {
